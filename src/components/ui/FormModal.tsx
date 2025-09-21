@@ -45,7 +45,7 @@ export const FormModal: React.FC<FormModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[9999]">
       <div className={`bg-white rounded-lg shadow-xl ${getSizeClasses()} w-full max-h-[90vh] flex flex-col`}>
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
@@ -66,12 +66,12 @@ export const FormModal: React.FC<FormModalProps> = ({
 
         {/* Content */}
         <form onSubmit={onSubmit} className="flex-1 flex flex-col">
-          <div className="flex-1 overflow-y-auto p-6">
+          <div className="flex-1 overflow-y-auto px-6 py-8">
             {children}
           </div>
 
           {/* Actions */}
-          <div className="flex items-center justify-end space-x-3 p-6 bg-gray-50 border-t border-gray-200">
+          <div className="flex items-center justify-end space-x-3 px-6 py-4 bg-gray-50 border-t border-gray-200">
             <Button
               type="button"
               variant="outline"

@@ -410,7 +410,7 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto relative z-[10000]">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">{getStepTitle()}</h2>
           <button
@@ -446,11 +446,11 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6">
+        <form onSubmit={handleSubmit} className="px-6 py-8">
           {renderStepContent()}
         </form>
 
-        <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50">
+        <div className="flex justify-between items-center px-6 py-5 border-t border-gray-200 bg-gray-50">
           <div>
             {currentStep > 1 && (
               <Button

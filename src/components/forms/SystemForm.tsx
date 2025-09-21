@@ -109,7 +109,7 @@ const SystemForm: React.FC<SystemFormProps> = ({
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="bg-white rounded-lg shadow-xl">
+      <div className="bg-white rounded-lg shadow-xl relative z-[10000]">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
           <button
@@ -120,7 +120,7 @@ const SystemForm: React.FC<SystemFormProps> = ({
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
+        <form onSubmit={handleSubmit} className="px-6 py-8 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Nombre */}
             <div>
@@ -272,7 +272,7 @@ const SystemForm: React.FC<SystemFormProps> = ({
           </div>
         </form>
 
-        <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200">
+        <div className="flex justify-end space-x-3 px-6 py-5 border-t border-gray-200">
           <Button
             type="button"
             variant="outline"

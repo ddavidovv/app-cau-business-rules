@@ -70,7 +70,7 @@ const TagInput: React.FC<TagInputProps> = ({
 
       <div
         className={clsx(
-          'min-h-[42px] w-full px-3 py-2 border rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500',
+          'min-h-[44px] w-full px-3 py-2.5 border rounded-md shadow-sm focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500',
           error ? 'border-red-300' : 'border-gray-300',
           disabled && 'bg-gray-50 cursor-not-allowed'
         )}

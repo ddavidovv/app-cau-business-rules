@@ -58,18 +58,18 @@ const Modal: React.FC<ModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
+    <div className="fixed inset-0 z-[9999] overflow-y-auto">
       <div className="flex min-h-screen items-center justify-center p-4 text-center sm:p-0">
         {/* Overlay */}
         <div
-          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"
+          className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity z-[9998]"
           onClick={onClose}
         />
 
         {/* Modal */}
         <div
           className={clsx(
-            'relative inline-block w-full transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:align-middle',
+            'relative inline-block w-full transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:align-middle z-[9999]',
             sizeClasses[size],
             className
           )}
@@ -94,7 +94,7 @@ const Modal: React.FC<ModalProps> = ({
           )}
 
           {/* Content */}
-          <div className={clsx(title ? 'px-6 py-4' : 'p-6')}>
+          <div className={clsx(title ? 'px-6 py-6' : 'p-6')}>
             {children}
           </div>
         </div>

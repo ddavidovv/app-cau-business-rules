@@ -8,7 +8,7 @@ export const cssStyles = {
       padding: '0.5rem 0',
       position: 'sticky' as const,
       top: 0,
-      zIndex: 100,
+      zIndex: 1000,
       boxShadow: '0 2px 8px 0 rgba(0,0,0,0.04)'
     },
     content: {
