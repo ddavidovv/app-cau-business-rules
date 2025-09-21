@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, HelpCircle } from 'lucide-react';
-import { Button, Input, Modal } from '../ui';
+import { X, HelpCircle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Button, Input, Modal, TagInput } from '../ui';
 import SystemSelector from '../ui/SystemSelector';
 import ResponsibleSelector from '../ui/ResponsibleSelector';
 import { BusinessContext, BusinessContextCreate, BusinessContextUpdate } from '../../types/api';
@@ -22,11 +22,14 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
   title,
   submitText
 }) => {
+  const [currentStep, setCurrentStep] = useState(1);
+  const totalSteps = 3;
+
   const [formData, setFormData] = useState({
     name: businessContext?.name || '',
     description: businessContext?.description || '',
-    keywords: businessContext?.keywords?.join(', ') || '',
-    alias: businessContext?.alias?.join(', ') || '',
+    keywords: businessContext?.keywords || [],
+    alias: businessContext?.alias || [],
     projectManager: businessContext?.projectManager || '',
     affectedSystems: businessContext?.assignmentRules?.affected_systems || [],
     defaultPriority: businessContext?.assignmentRules?.default_priority || 'MEDIUM',
@@ -56,8 +59,8 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
       setFormData({
         name: businessContext.name || '',
         description: businessContext.description || '',
-        keywords: businessContext.keywords?.join(', ') || '',
-        alias: businessContext.alias?.join(', ') || '',
+        keywords: businessContext.keywords || [],
+        alias: businessContext.alias || [],
         projectManager: businessContext.projectManager || '',
         affectedSystems: businessContext.assignmentRules?.affected_systems || [],
         defaultPriority: businessContext.assignmentRules?.default_priority || 'MEDIUM',
@@ -67,66 +70,72 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
       setFormData({
         name: '',
         description: '',
-        keywords: '',
-        alias: '',
+        keywords: [],
+        alias: [],
         projectManager: '',
         affectedSystems: [],
         defaultPriority: 'MEDIUM',
       });
     }
-    // Clear any existing errors when business context changes
+    // Clear any existing errors and reset to first step
     setErrors({});
+    setCurrentStep(1);
   }, [businessContext]);
 
-  const validate = () => {
+  const validateStep = (step: number) => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name.trim()) {
-      newErrors.name = 'El nombre es requerido';
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'La descripción es requerida';
-    }
-
-    if (!formData.keywords.trim()) {
-      newErrors.keywords = 'Las palabras clave son requeridas';
-    }
-
-    if (formData.projectManager && !formData.projectManager.includes('@')) {
-      newErrors.projectManager = 'Debe ser un email válido';
-    }
-
-    if (formData.projectManager && !validResponsibles.includes(formData.projectManager)) {
-      newErrors.projectManager = 'El responsable debe estar en el catálogo autorizado';
+    if (step === 1) {
+      if (!formData.name.trim()) {
+        newErrors.name = 'El nombre es requerido';
+      }
+      if (!formData.description.trim()) {
+        newErrors.description = 'La descripción es requerida';
+      }
+    } else if (step === 2) {
+      if (formData.keywords.length === 0) {
+        newErrors.keywords = 'Las palabras clave son requeridas';
+      }
+    } else if (step === 3) {
+      if (formData.projectManager && !formData.projectManager.includes('@')) {
+        newErrors.projectManager = 'Debe ser un email válido';
+      }
+      if (formData.projectManager && !validResponsibles.includes(formData.projectManager)) {
+        newErrors.projectManager = 'El responsable debe estar en el catálogo autorizado';
+      }
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleNext = () => {
+    if (validateStep(currentStep)) {
+      setCurrentStep(prev => Math.min(prev + 1, totalSteps));
+    }
+  };
+
+  const handlePrevious = () => {
+    setCurrentStep(prev => Math.max(prev - 1, 1));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validate()) return;
+    if (!validateStep(currentStep)) return;
+
+    if (currentStep < totalSteps) {
+      handleNext();
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      const keywords = formData.keywords
-        .split(',')
-        .map(keyword => keyword.trim())
-        .filter(keyword => keyword.length > 0);
-
-      const alias = formData.alias
-        .split(',')
-        .map(alias => alias.trim())
-        .filter(alias => alias.length > 0);
-
       const submitData: BusinessContextCreate | BusinessContextUpdate = {
         name: formData.name,
         description: formData.description,
-        keywords,
-        alias: alias.length > 0 ? alias : undefined,
+        keywords: formData.keywords,
+        alias: formData.alias.length > 0 ? formData.alias : undefined,
         projectManager: formData.projectManager || undefined,
         assignment_rules: {
           responsible_person: formData.projectManager || '',
@@ -172,163 +181,177 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
     </div>
   );
 
-  return (
-    <Modal isOpen={isOpen} onClose={onClose} size="lg">
-      <div className="bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">{title}</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
+  const getStepTitle = () => {
+    const stepTitles = {
+      1: 'Información Básica',
+      2: 'Clasificación IA',
+      3: 'Reglas de Asignación'
+    };
+    return `${title} (Paso ${currentStep} de ${totalSteps}: ${stepTitles[currentStep as keyof typeof stepTitles]})`;
+  };
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          {/* Información contextual */}
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-2">¿Qué son las Reglas de Negocio?</h3>
-            <p className="text-sm text-blue-800 mb-2">
-              Las reglas de negocio permiten que la IA clasifique automáticamente los tickets
-              basándose en palabras clave específicas y asigne el responsable apropiado.
-            </p>
-            <p className="text-sm text-blue-700">
-              Cada regla debe tener un nombre descriptivo, palabras clave que garanticen la asignación,
-              y opcionalmente términos alternativos para mejorar la detección.
-            </p>
+  const getButtonText = () => {
+    if (currentStep < totalSteps) return 'Siguiente';
+    return isSubmitting ? 'Guardando...' : submitText;
+  };
+
+  const renderStepContent = () => {
+    switch (currentStep) {
+      case 1:
+        return (
+          <div className="space-y-6">
+            {/* Información contextual */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h3 className="font-medium text-blue-900 mb-2">¿Qué son las Reglas de Negocio?</h3>
+              <p className="text-sm text-blue-800 mb-2">
+                Las reglas de negocio permiten que la IA clasifique automáticamente los tickets
+                basándose en palabras clave específicas y asigne el responsable apropiado.
+              </p>
+              <p className="text-sm text-blue-700">
+                Cada regla debe tener un nombre descriptivo y una descripción clara del contexto
+                que debe capturar.
+              </p>
+            </div>
+
+            {/* Nombre */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Nombre de la Regla *
+                </label>
+                <FieldInfo
+                  title="Nombre Descriptivo"
+                  description="Un nombre claro que identifique el ámbito o contexto de negocio"
+                  example="Sistema de Facturación, Portal Clientes, ERP Financiero"
+                />
+              </div>
+              <Input
+                type="text"
+                value={formData.name}
+                onChange={(e) => handleInputChange('name', e.target.value)}
+                placeholder="ej. Sistema de Facturación"
+                className={errors.name ? 'border-red-300' : ''}
+              />
+              {errors.name && (
+                <p className="mt-1 text-sm text-red-600">{errors.name}</p>
+              )}
+            </div>
+
+            {/* Descripción */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Descripción *
+                </label>
+                <FieldInfo
+                  title="Descripción del Contexto"
+                  description="Explica qué tipo de tickets debe capturar esta regla y por qué"
+                  example="Incidencias relacionadas con el proceso de facturación, emisión de facturas, y errores en el cálculo de importes"
+                />
+              </div>
+              <textarea
+                value={formData.description}
+                onChange={(e) => handleInputChange('description', e.target.value)}
+                placeholder="Describe el tipo de incidencias que debe capturar esta regla..."
+                rows={4}
+                className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-300' : ''}`}
+              />
+              {errors.description && (
+                <p className="mt-1 text-sm text-red-600">{errors.description}</p>
+              )}
+            </div>
           </div>
+        );
 
-          {/* Nombre */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Nombre de la Regla *
-              </label>
-              <FieldInfo
-                title="Nombre Descriptivo"
-                description="Un nombre claro que identifique el ámbito o contexto de negocio"
-                example="Sistema de Facturación, Portal Clientes, ERP Financiero"
+      case 2:
+        return (
+          <div className="space-y-6">
+            {/* Información contextual */}
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <h3 className="font-medium text-green-900 mb-2">🎯 Configuración de Clasificación IA</h3>
+              <p className="text-sm text-green-800">
+                Define las palabras clave que la IA utilizará para identificar automáticamente
+                los tickets que pertenecen a este contexto de negocio.
+              </p>
+            </div>
+
+            {/* Palabras Clave */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Palabras Clave Específicas *
+                </label>
+                <FieldInfo
+                  title="Keywords Específicas"
+                  description="Palabras que GARANTIZAN la asignación automática. Deben ser muy específicas para evitar falsos positivos"
+                  example="factura, facturación, invoice, billing"
+                />
+              </div>
+              <TagInput
+                value={formData.keywords}
+                onChange={(keywords) => handleInputChange('keywords', keywords)}
+                placeholder="Escribir palabra clave y presionar Enter..."
+                error={errors.keywords}
+                helpText="🎯 Palabras específicas que garantizan la asignación automática"
               />
             </div>
-            <Input
-              type="text"
-              value={formData.name}
-              onChange={(e) => handleInputChange('name', e.target.value)}
-              placeholder="ej. Sistema de Facturación"
-              className={errors.name ? 'border-red-300' : ''}
-            />
-            {errors.name && (
-              <p className="mt-1 text-sm text-red-600">{errors.name}</p>
-            )}
-          </div>
 
-          {/* Descripción */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Descripción *
-              </label>
-              <FieldInfo
-                title="Descripción del Contexto"
-                description="Explica qué tipo de tickets debe capturar esta regla y por qué"
-                example="Incidencias relacionadas con el proceso de facturación, emisión de facturas, y errores en el cálculo de importes"
+            {/* Términos Alternativos */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Términos Alternativos / Alias
+                </label>
+                <FieldInfo
+                  title="Alias y Términos Coloquiales"
+                  description="Términos alternativos, abreviaciones o formas coloquiales que los usuarios podrían usar"
+                  example="cobro, factoring, billing, recibo"
+                />
+              </div>
+              <TagInput
+                value={formData.alias}
+                onChange={(alias) => handleInputChange('alias', alias)}
+                placeholder="Escribir término alternativo y presionar Enter..."
+                helpText="💡 Términos adicionales que podrían indicar el mismo contexto. Opcional."
               />
             </div>
-            <textarea
-              value={formData.description}
-              onChange={(e) => handleInputChange('description', e.target.value)}
-              placeholder="Describe el tipo de incidencias que debe capturar esta regla..."
-              rows={3}
-              className={`w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${errors.description ? 'border-red-300' : ''}`}
-            />
-            {errors.description && (
-              <p className="mt-1 text-sm text-red-600">{errors.description}</p>
-            )}
           </div>
+        );
 
-          {/* Palabras Clave */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Palabras Clave Específicas *
-              </label>
-              <FieldInfo
-                title="Keywords Específicas"
-                description="Palabras que GARANTIZAN la asignación automática. Deben ser muy específicas para evitar falsos positivos"
-                example="factura, facturación, invoice, billing"
+      case 3:
+        return (
+          <div className="space-y-6">
+            {/* Información contextual */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h3 className="font-medium text-purple-900 mb-2">⚙️ Configuración de Asignación</h3>
+              <p className="text-sm text-purple-800">
+                Define cómo la IA debe asignar automáticamente los tickets que coincidan
+                con las palabras clave configuradas.
+              </p>
+            </div>
+
+            {/* Project Manager */}
+            <div>
+              <div className="flex items-center space-x-2 mb-2">
+                <label className="block text-sm font-medium text-gray-700">
+                  Responsable Principal (Project Manager)
+                </label>
+                <FieldInfo
+                  title="Responsable del Ámbito"
+                  description="Email del responsable principal que debe recibir los tickets de este contexto"
+                  example="juan.perez@cttexpress.com"
+                />
+              </div>
+              <ResponsibleSelector
+                value={formData.projectManager}
+                onChange={(value) => handleInputChange('projectManager', value)}
+                error={errors.projectManager}
+                placeholder="Seleccionar responsable del catálogo..."
               />
             </div>
-            <Input
-              type="text"
-              value={formData.keywords}
-              onChange={(e) => handleInputChange('keywords', e.target.value)}
-              placeholder="factura, facturación, invoice, billing (separadas por comas)"
-              className={errors.keywords ? 'border-red-300' : ''}
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              🎯 Palabras específicas que garantizan la asignación automática. Separe con comas.
-            </p>
-            {errors.keywords && (
-              <p className="mt-1 text-sm text-red-600">{errors.keywords}</p>
-            )}
-          </div>
-
-          {/* Términos Alternativos */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Términos Alternativos / Alias
-              </label>
-              <FieldInfo
-                title="Alias y Términos Coloquiales"
-                description="Términos alternativos, abreviaciones o formas coloquiales que los usuarios podrían usar"
-                example="cobro, factoring, billing, recibo"
-              />
-            </div>
-            <Input
-              type="text"
-              value={formData.alias}
-              onChange={(e) => handleInputChange('alias', e.target.value)}
-              placeholder="cobro, factoring, billing, recibo (separados por comas)"
-            />
-            <p className="mt-1 text-sm text-gray-500">
-              💡 Términos adicionales que podrían indicar el mismo contexto. Opcional.
-            </p>
-          </div>
-
-          {/* Project Manager */}
-          <div>
-            <div className="flex items-center space-x-2 mb-2">
-              <label className="block text-sm font-medium text-gray-700">
-                Responsable Principal (Project Manager)
-              </label>
-              <FieldInfo
-                title="Responsable del Ámbito"
-                description="Email del responsable principal que debe recibir los tickets de este contexto"
-                example="juan.perez@cttexpress.com"
-              />
-            </div>
-            <ResponsibleSelector
-              value={formData.projectManager}
-              onChange={(value) => handleInputChange('projectManager', value)}
-              error={errors.projectManager}
-              placeholder="Seleccionar responsable del catálogo..."
-            />
-          </div>
-
-          {/* Sección de Reglas de Asignación */}
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
-            <h3 className="font-medium text-blue-900 mb-3 flex items-center gap-2">
-              🎯 Reglas de Asignación Automática
-              <FieldInfo
-                title="Reglas de Asignación IA"
-                description="Configuración avanzada para que la IA asigne automáticamente los sistemas y prioridad"
-              />
-            </h3>
 
             {/* Sistemas Afectados */}
-            <div className="mb-4">
+            <div>
               <div className="flex items-center space-x-2 mb-2">
                 <label className="block text-sm font-medium text-gray-700">
                   Sistemas Afectados
@@ -378,36 +401,89 @@ const BusinessContextForm: React.FC<BusinessContextFormProps> = ({
               </p>
             </div>
           </div>
+        );
 
-          {/* Próximas funcionalidades */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h3 className="font-medium text-gray-700 mb-2">🚧 Próximamente disponibles:</h3>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Indicadores de criticidad por palabras clave específicas</li>
-              <li>• Validación con preview de IA en tiempo real</li>
-              <li>• Configuración de escalado automático por tiempo</li>
-              <li>• Reglas de asignación por horarios y disponibilidad</li>
-            </ul>
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} size="lg">
+      <div className="bg-white rounded-lg shadow-xl max-h-[90vh] overflow-y-auto">
+        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+          <h2 className="text-xl font-semibold text-gray-900">{getStepTitle()}</h2>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+
+        {/* Progress indicator */}
+        <div className="px-6 py-3 bg-gray-50 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <div className="flex space-x-2">
+              {[1, 2, 3].map((step) => (
+                <div
+                  key={step}
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
+                    step === currentStep
+                      ? 'bg-blue-600 text-white'
+                      : step < currentStep
+                      ? 'bg-green-600 text-white'
+                      : 'bg-gray-200 text-gray-600'
+                  }`}
+                >
+                  {step}
+                </div>
+              ))}
+            </div>
+            <span className="text-sm text-gray-500">
+              Paso {currentStep} de {totalSteps}
+            </span>
           </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6">
+          {renderStepContent()}
         </form>
 
-        <div className="flex justify-end space-x-3 px-6 py-4 border-t border-gray-200">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={onClose}
-            disabled={isSubmitting}
-          >
-            Cancelar
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? 'Guardando...' : submitText}
-          </Button>
+        <div className="flex justify-between items-center px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div>
+            {currentStep > 1 && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handlePrevious}
+                disabled={isSubmitting}
+              >
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                Atrás
+              </Button>
+            )}
+          </div>
+          
+          <div className="flex space-x-3">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={onClose}
+              disabled={isSubmitting}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="submit"
+              variant="primary"
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >
+              {currentStep < totalSteps && <ChevronRight className="h-4 w-4 mr-1" />}
+              {getButtonText()}
+            </Button>
+          </div>
         </div>
       </div>
     </Modal>
